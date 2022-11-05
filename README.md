@@ -19,6 +19,8 @@ All versioning is controlled by GtX | Andy and not by any other page, individual
 ## Documentation
 Please also see the example XML available [HERE](https://github.com/GtX-Andy/extendedProductionPoint/blob/master/example.xml) for more information on available features.
 
+#### Optional: [ExtendedLoadingStation](https://github.com/GtX-Andy/extendedProductionPoint/blob/master/ExtendedLoadingStation.xml) is available for external silo operation or when animations are required. Further information included in example.xml referenced above.
+
 ## Thanks
 #### Farmer Andy | LSFM
 Feature requests, testing, support and first map to include script for release [Hof Bergmann V1.1.0.0](https://www.lsfarming-mods.com/filebase/file/178-hof-bergmann/)

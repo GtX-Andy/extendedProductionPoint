@@ -350,6 +350,20 @@
         <loadingStation fillTypeCategories="string" fillTypes="string" node="node" stationName="LoadingStation" storageRadius="50" supportsExtension="false">
         </loadingStation>
 
+        <!-- Optional: This extended loading station provides all base features but also allows you to include a player trigger for interaction when on foot and also the ability to use <objectChange> if required.
+                       ExtendedLoadingStation.lua is available at https://github.com/GtX-Andy/extendedProductionPoint/blob/master/ExtendedLoadingStation.xml
+
+                       When using <extendedLoadingStation> the default <loadingStation> will no longer operate
+        -->
+        <extendedLoadingStation>
+            <loadTrigger triggerNode="triggerNode" fillTypes="string">
+                <playerTrigger node="loadTriggerPlayer" externalActivation="false"/>  <!-- When externalActivation="true" it is only possible to start filling from outside a vehicle. -->
+
+                <!-- Optional: This can be a handle operation or shader etc just like a standard 'objectChange'.  -->
+                <objectChange node="node" rigidBodyTypeActive="string" rigidBodyTypeInactive="string" rotationActive="x y z" rotationInactive="x y z" scaleActive="x y z" scaleInactive="x y z" shaderParameter="string" shaderParameterActive="x y z w" shaderParameterInactive="x y z w" sharedShaderParameter="false" translationActive="x y z" translationInactive="x y z" visibilityActive="boolean" visibilityInactive="boolean"/>
+            </loadTrigger>
+        </extendedLoadingStation>
+
         <!-- No changes -->
         <palletSpawner node="node">
         </palletSpawner>
