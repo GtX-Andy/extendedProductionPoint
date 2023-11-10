@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 
 <!-- ModDesc Example -->
-<modDesc descVersion="71">
+<modDesc descVersion="79">
     <extraSourceFiles>
         <!-- Optional Animation Node Extensions: Only add if required in the factory!  All available on GtX GitHub
              https://github.com/GtX-Andy/animationNodeAnimations
