@@ -1,6 +1,6 @@
 # Extended Production Point for Farming Simulator 22
 
- `Farming Simulator  22`   `Game Version: 1.8.1.0`
+ `Farming Simulator  22`   `Game Version: 1.13.1.0`
 
 ## Usage
 This script is free for use in any Farming Simulator 22 **Map** or **Placeable** mod for both ***Private*** and ***Public*** release.

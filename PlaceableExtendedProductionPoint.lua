@@ -3,7 +3,7 @@ Copyright (C) GtX (Andy), 2022
 
 Author: GtX | Andy
 Date: 14.02.2022
-Revision: FS22-03
+Revision: FS22-05
 
 Contact:
 https://forum.giants-software.com
@@ -22,7 +22,11 @@ Das Kopieren oder Entfernen irgendeines Teils dieses Codes zur externen Verwendu
 PlaceableExtendedProductionPoint = {}
 
 PlaceableExtendedProductionPoint.MOD_NAME = g_currentModName
-PlaceableExtendedProductionPoint.SPEC_NAME = string.format("spec_%s.extendedProductionPoint", g_currentModName)
+PlaceableExtendedProductionPoint.SPEC_NAME = string.format("%s.extendedProductionPoint", g_currentModName)
+PlaceableExtendedProductionPoint.SPEC = string.format("spec_%s", PlaceableExtendedProductionPoint.SPEC_NAME)
+
+local specEntryName = PlaceableExtendedProductionPoint.SPEC
+local newUpdateInfoFunc = g_gameVersion >= 21 or g_maxModDescVersion >= 79
 
 function PlaceableExtendedProductionPoint.prerequisitesPresent(specializations)
     return SpecializationUtil.hasSpecialization(PlaceableInfoTrigger, specializations) and not SpecializationUtil.hasSpecialization(PlaceableProductionPoint, specializations)
@@ -120,13 +124,13 @@ function PlaceableExtendedProductionPoint.registerSavegameXMLPaths(schema, baseP
 end
 
 function PlaceableExtendedProductionPoint:onLoad(savegame)
-    self.spec_extendedProductionPoint = self[PlaceableExtendedProductionPoint.SPEC_NAME]
+    local spec = self[specEntryName]
 
-    if self.spec_extendedProductionPoint == nil then
+    if spec == nil then
         Logging.error("[%s] Specialisation with name 'extendedProductionPoint' was not found in modDesc!", PlaceableExtendedProductionPoint.MOD_NAME)
+        self:setLoadingState(Placeable.LOADING_STATE_ERROR)
     end
 
-    local spec = self.spec_extendedProductionPoint
     local productionPoint = ExtendedProductionPoint.new(self.isServer, self.isClient, self.baseDirectory)
 
     productionPoint.owningPlaceable = self
@@ -135,17 +139,19 @@ function PlaceableExtendedProductionPoint:onLoad(savegame)
     if productionPoint:load(self.components, self.xmlFile, "placeable.extendedProductionPoint", self.customEnvironment, self.i3dMappings) then
         spec.productionPoint = productionPoint
 
-        if not spec.productionPoint.collectRainWater then
+        if not self.isServer or not productionPoint.collectRainWater then
             SpecializationUtil.removeEventListener(self, "onMinuteChanged", PlaceableExtendedProductionPoint)
         end
     else
         productionPoint:delete()
         self:setLoadingState(Placeable.LOADING_STATE_ERROR)
     end
+
+    self.spec_extendedProductionPoint = spec
 end
 
 function PlaceableExtendedProductionPoint:onDelete()
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         spec.productionPoint:delete()
@@ -155,7 +161,7 @@ function PlaceableExtendedProductionPoint:onDelete()
 end
 
 function PlaceableExtendedProductionPoint:onFinalizePlacement()
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         spec.productionPoint:register(true)
@@ -166,7 +172,20 @@ function PlaceableExtendedProductionPoint:onFinalizePlacement()
 end
 
 function PlaceableExtendedProductionPoint:updateInfo(superFunc, infoTable)
-    self.spec_extendedProductionPoint.productionPoint:updateInfo(superFunc, infoTable)
+    local spec = self[specEntryName]
+
+    -- Fix for changes made in game update 1.13.1 where placeable superFunc is no longer passed to the 'ProductionPoint' class.
+    -- This allows placeables to still work on older game versions if the user has not updated.
+    if spec.productionPoint ~= nil then
+        if newUpdateInfoFunc then
+            superFunc(self, infoTable)
+            spec.productionPoint:updateInfo(infoTable)
+        else
+            spec.productionPoint:updateInfo(superFunc, infoTable)
+        end
+    else
+        superFunc(self, infoTable)
+    end
 end
 
 function PlaceableExtendedProductionPoint:outputsChanged(outputs, state)
@@ -178,7 +197,7 @@ function PlaceableExtendedProductionPoint:productionStatusChanged(production, st
 end
 
 function PlaceableExtendedProductionPoint:onReadStream(streamId, connection)
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         local productionPointId = NetworkUtil.readNodeObjectId(streamId)
@@ -189,7 +208,7 @@ function PlaceableExtendedProductionPoint:onReadStream(streamId, connection)
 end
 
 function PlaceableExtendedProductionPoint:onWriteStream(streamId, connection)
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         NetworkUtil.writeNodeObjectId(streamId, NetworkUtil.getObjectId(spec.productionPoint))
@@ -200,7 +219,7 @@ end
 
 function PlaceableExtendedProductionPoint:onMinuteChanged(minute)
     if self.isServer then
-        local spec = self.spec_extendedProductionPoint
+        local spec = self[specEntryName]
 
         if spec.productionPoint ~= nil and spec.productionPoint.isOwned and spec.productionPoint.collectRainWater then
             local lastRainScale = g_currentMission.environment.weather:getRainFallScale(spec.productionPoint.collectSnow)
@@ -213,7 +232,7 @@ function PlaceableExtendedProductionPoint:onMinuteChanged(minute)
 end
 
 function PlaceableExtendedProductionPoint:loadFromXMLFile(xmlFile, key)
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         spec.productionPoint:loadFromXMLFile(xmlFile, key)
@@ -221,7 +240,7 @@ function PlaceableExtendedProductionPoint:loadFromXMLFile(xmlFile, key)
 end
 
 function PlaceableExtendedProductionPoint:saveToXMLFile(xmlFile, key, usedModNames)
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         spec.productionPoint:saveToXMLFile(xmlFile, key, usedModNames)
@@ -231,7 +250,7 @@ end
 function PlaceableExtendedProductionPoint:setOwnerFarmId(superFunc, farmId, noEventSend)
     superFunc(self, farmId, noEventSend)
 
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint ~= nil then
         spec.productionPoint:setOwnerFarmId(farmId)
@@ -239,7 +258,7 @@ function PlaceableExtendedProductionPoint:setOwnerFarmId(superFunc, farmId, noEv
 end
 
 function PlaceableExtendedProductionPoint:collectPickObjects(superFunc, node)
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if spec.productionPoint.loadingStation ~= nil then
         for i = 1, #spec.productionPoint.loadingStation.loadTriggers do
@@ -271,7 +290,7 @@ function PlaceableExtendedProductionPoint:canBuy(superFunc)
 end
 
 function PlaceableExtendedProductionPoint:getNeedMinuteChanged(superFunc)
-    local spec = self.spec_extendedProductionPoint
+    local spec = self[specEntryName]
 
     if self.isServer and spec.productionPoint ~= nil and spec.productionPoint.collectRainWater then
         return true
@@ -311,7 +330,8 @@ function ExtendedProductionPoint.registerXMLPaths(schema, basePath)
         ExtendedLoadingStation.registerXMLPaths(schema, basePath .. ".extendedLoadingStation")
     end
 
-    schema:register(XMLValueType.BOOL, basePath .. ".productions.production(?)#autoOff", "(Disabled when 'alwaysActive=true') Automatically stops production when and input is empty or output is full, starting will also not be possible", false)
+    schema:register(XMLValueType.BOOL, basePath .. ".productions.production(?)#autoOff", "(Disabled when 'alwaysActive=true') Automatically stops production when materials are missing or no output space, starting will also not be possible", false)
+    schema:register(XMLValueType.BOOL, basePath .. ".productions.production(?)#showAutoOffLitres", "When 'true' the ingredient name and minimum fill level or space required will also be displayed when trying to start production", true)
 
     schema:register(XMLValueType.FLOAT, basePath .. ".rainWaterCollector#rainWaterPerMinute", "The value per minute add to the 'WATER' storage. This value is adjusted when only raining lightly", 0)
     schema:register(XMLValueType.BOOL, basePath .. ".rainWaterCollector#collectSnow", "Add snow and rain to the 'WATER' storage", false)
@@ -494,6 +514,7 @@ function ExtendedProductionPoint:load(components, xmlFile, key, customEnvironmen
 
             if not self.extendedFeaturesAlwaysActive then
                 production.extendedFeaturesAutoOff = xmlFile:getValue(productionKey .. "#autoOff", false)
+                production.extendedFeaturesShowAutoOffLitres = xmlFile:getValue(productionKey .. "#showAutoOffLitres", true)
             end
 
             local triggerId = xmlFile:getValue(productionKey .. ".playerTrigger#node", nil, components, i3dMappings)
@@ -1566,14 +1587,47 @@ function ExtendedProductionPoint:setProductionState(productionId, state, noEvent
     if production ~= nil then
         if not self.extendedFeaturesAlwaysActive then
             if state and self.isOwned and production.extendedFeaturesAutoOff then
+                local numProductionPoints = 1
+                local productionChainManager = g_currentMission.productionChainManager
+
+                if productionChainManager ~= nil and productionChainManager.productionPoints ~= nil then
+                    numProductionPoints = math.max(#productionChainManager.productionPoints, 1)
+                end
+
+                local updateInterval = MathUtil.clamp(g_currentDt * numProductionPoints, 0, 30000)
+                local timeAdjustment = g_currentMission.environment.timeAdjustment
+
+                local factor = production.cyclesPerMinute * (updateInterval / 60000 * timeAdjustment)
+
                 for _, input in ipairs (production.inputs) do
-                    if self:getFillLevel(input.type) < input.amount  then
+                    local fillLevel = self:getFillLevel(input.type)
+                    local amount = input.amount * factor
+
+                    if fillLevel < amount then
+                        if production.extendedFeaturesShowAutoOffLitres then
+                            local title = g_fillTypeManager:getFillTypeTitleByIndex(input.type)
+                            local required = g_i18n:formatVolume(math.ceil(amount - fillLevel), 0)
+
+                            return string.format("%s\n\n%s: %s", g_i18n:getText("ui_production_status_materialsMissing"), title, required)
+                        end
+
                         return g_i18n:getText("ui_production_status_materialsMissing")
                     end
                 end
 
+                factor = production.cyclesPerMinute * (updateInterval * self.minuteFactorTimescaled * timeAdjustment)
+
                 for _, output in ipairs (production.outputs) do
-                    if not output.sellDirectly and self.storage:getFreeCapacity(output.type) < output.amount then
+                    local amount = output.amount * factor
+
+                    if not output.sellDirectly and self.storage:getFreeCapacity(output.type) < amount then
+                        if production.extendedFeaturesShowAutoOffLitres then
+                            local title = g_fillTypeManager:getFillTypeTitleByIndex(output.type)
+                            local required = g_i18n:formatVolume(math.ceil(amount), 0)
+
+                            return string.format("%s\n\n%s: %s", g_i18n:getText("ui_production_status_outOfSpace"), title, required)
+                        end
+
                         return g_i18n:getText("ui_production_status_outOfSpace")
                     end
                 end
@@ -1788,7 +1842,7 @@ function ExtendedProductionPointActivatable:run()
         local message = self.productionPoint:setProductionState(self.production.id, not state)
 
         if message ~= nil and self.production.name ~= nil then
-            g_currentMission:showBlinkingWarning(string.format("%s: %s", self.production.name, message), 2000)
+            g_currentMission:showBlinkingWarning(string.format("%s:  %s", self.production.name, message), 2000)
         end
 
         self:updateActionEventTexts()
