@@ -3,7 +3,9 @@
  `Farming Simulator  22`   `Game Version: 1.13.1.0`
 
 ## Usage
-This script is free for use in any Farming Simulator 22 **Map** or **Placeable** mod for both ***Private*** and ***Public*** release.
+This script is free for use in any Farming Simulator 22 **Map** or **Placeable** mod for both ***Private*** and ***Public*** release.  
+
+#### &nbsp;&nbsp;&nbsp;&nbsp; - Looking for the [Farming Simulator 25](https://github.com/GtX-Andy/FS25_ExtendedProductionPoint) release?
 
 ## Publishing
 The publishing of this script when not included in its entirety as part of a **Map** or **Placeable** mod is not permitted.
